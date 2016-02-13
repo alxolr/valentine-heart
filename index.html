@@ -4,45 +4,63 @@
 <head>
   <meta charset="utf-8">
   <title>My Valentine - I Love You!</title>
-  <script src="bower_components/tracking/build/tracking-min.js" />
+  <script src="bower_components/tracking/build/tracking-min.js"></script>
 </head>
-
+<style>
+  video, canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
 <body>
-  <video id="myVideo" width="400" height="300" preload autoplay loop muted></video>
-  <script type="text/javascript">
-    (function() {
-      var colors = new tracking.ColorTracker(['magenta']);
+  <img id="image" src="public/img/heart.png" width="0px" height="0px" />
+  <video id="myVideo" width="800" height="600" preload autoplay loop muted></video>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <script>
+    var colors = new tracking.ColorTracker(['magenta']);
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext('2d');
+    colors.setMinDimension(15);
 
-      colors.on('track', function(event) {
-        if (event.data.length === 0) {
+    colors.on('track', function(event) {
+      console.log(event.data);
+      if (event.data.length === 0) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
           // No colors were detected in this frame.
-        } else {
-          event.data.forEach(function(rect) {
-            console.log(rect.x, rect.y, rect.height, rect.width, rect.color);
-          });
-        }
-      });
-
-      tracking.track('#myVideo', colors);
-
-      navigator.getUserMedia = navigator.getUserMedia ||
-        navigator.webkitGetUserMedia ||
-        navigator.mozGetUserMedia ||
-        navigator.msGetUserMedia;
-      console.log('poop');
-      var video = document.getElementById('myVideo');
-
-      if (navigator.getUserMedia) {
-        navigator.getUserMedia({
-          audio: true,
-          video: true
-        }, function(stream) {
-          video.src = window.URL.createObjectURL(stream);
-        }, errorCallback);
       } else {
-        video.src = 'somevideo.webm'; // fallback.
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        event.data.forEach(function(rect) {
+          if (rect.color === 'custom') {
+            rect.color = tracker.customColor;
+          }
+
+          var img = document.getElementById("image");
+          context.drawImage(img,rect.x,rect.y,rect.width,rect.height);          // context.strokeStyle = rect.color;
+        });
       }
-    })();
+    });
+
+    tracking.track('#myVideo', colors);
+
+    navigator.getUserMedia = navigator.getUserMedia ||
+      navigator.webkitGetUserMedia ||
+      navigator.mozGetUserMedia ||
+      navigator.msGetUserMedia;
+    var video = document.getElementById('myVideo');
+
+    if (navigator.getUserMedia) {
+      navigator.getUserMedia({
+        audio: true,
+        video: true
+      }, function(stream) {
+        video.src = window.URL.createObjectURL(stream);
+      }, function(err) {
+        console.error(err);
+      });
+    } else {
+      video.src = 'somevideo.webm'; // fallback.
+    };
   </script>
 </body>
 
