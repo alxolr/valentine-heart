@@ -1,10 +1,49 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>My Valentine - I Love You!</title>
-  </head>
-  <body>
 
-  </body>
+<head>
+  <meta charset="utf-8">
+  <title>My Valentine - I Love You!</title>
+  <script src="bower_components/tracking/build/tracking-min.js" />
+</head>
+
+<body>
+  <video id="myVideo" width="400" height="300" preload autoplay loop muted></video>
+  <script type="text/javascript">
+    (function() {
+      var colors = new tracking.ColorTracker(['magenta']);
+
+      colors.on('track', function(event) {
+        if (event.data.length === 0) {
+          // No colors were detected in this frame.
+        } else {
+          event.data.forEach(function(rect) {
+            console.log(rect.x, rect.y, rect.height, rect.width, rect.color);
+          });
+        }
+      });
+
+      tracking.track('#myVideo', colors);
+
+      navigator.getUserMedia = navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia ||
+        navigator.msGetUserMedia;
+      console.log('poop');
+      var video = document.getElementById('myVideo');
+
+      if (navigator.getUserMedia) {
+        navigator.getUserMedia({
+          audio: true,
+          video: true
+        }, function(stream) {
+          video.src = window.URL.createObjectURL(stream);
+        }, errorCallback);
+      } else {
+        video.src = 'somevideo.webm'; // fallback.
+      }
+    })();
+  </script>
+</body>
+
 </html>
