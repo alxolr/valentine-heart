@@ -7,27 +7,97 @@
   <script src="bower_components/tracking/build/tracking-min.js"></script>
 </head>
 <style>
-  video, canvas {
+  video,
+  canvas {
     position: absolute;
     top: 0;
     left: 0;
   }
+
+  canvas#image-operations {
+    top: 600px;
+  }
 </style>
+
 <body>
   <img id="image" src="public/img/heart.png" width="0px" height="0px" />
   <video id="myVideo" width="800" height="600" preload autoplay loop muted></video>
+  <canvas id="image-operations" width="800" height="600"></canvas>
   <canvas id="canvas" width="800" height="600"></canvas>
   <script>
+    tracking.ColorTracker.registerColor('pink', function(r, g, b) {
+      var threshold = 5,
+        dx = r - 255,
+        dy = g - 0,
+        dz = b - 255;
+
+      if ((r - g) >= threshold && (b - g) >= threshold) {
+        return true;
+      }
+      return dx * dx + dy * dy + dz * dz < 19600;
+    });
+    var video = document.getElementById("vid");
     var colors = new tracking.ColorTracker(['magenta']);
     var canvas = document.getElementById('canvas');
+    var canvasShot = document.getElementById('image-operations');
     var context = canvas.getContext('2d');
-    colors.setMinDimension(15);
+    var video = document.getElementById('myVideo');
+
+    function contrastCanvas(canvas, value) {
+      var context = canvas.getContext('2d'),
+        imageData = context.getImageData(0, 0, canvas.width, canvas.height),
+        canvasPixelArray = imageData.data,
+        canvasPixelArrayLength = canvasPixelArray.length,
+        i = 0;
+
+      value = (parseFloat(value) || 0) + 1;
+
+      for (; i < canvasPixelArrayLength; i += 4) {
+        canvasPixelArray[i] = ((((canvasPixelArray[i] / 255) - 0.5) * value) + 0.5) * 255;
+        canvasPixelArray[i + 1] = ((((canvasPixelArray[i + 1] / 255) - 0.5) * value) + 0.5) * 255;
+        canvasPixelArray[i + 2] = ((((canvasPixelArray[i + 2] / 255) - 0.5) * value) + 0.5) * 255;
+      }
+
+      context.putImageData(imageData, 0, 0);
+
+      return canvas;
+    }
+
+    function blurCanvas(canvas, offset, alpha) {
+      var ctx = canvas.getContext('2d');
+      ctx.globalAlpha = alpha || 0.3;
+      offset = offset || 3;
+      for (var i = 1; i <= 8; i++) {
+        ctx.drawImage(canvas, offset, 0, canvas.width - offset, canvas.height, 0, 0, canvas.width - offset, canvas.height);
+        ctx.drawImage(canvas, 0, offset, canvas.width, canvas.height - offset, 0, 0, canvas.width, canvas.height - offset);
+      }
+      ctx.globalAlpha = 1;
+      return canvas;
+    }
+
+    function render(cb) {
+
+      canvasShot.getContext("2d").drawImage(video, 0, 0, canvasShot.width, canvasShot.height);
+      blurCanvas(canvasShot);
+      contrastCanvas(canvasShot, 7);
+      tracking.track('#image-operations', colors);
+      cb();
+    }
+
+    var renderCallback = function() {
+      setTimeout(function() {
+        render(renderCallback);
+      }, 50);
+    }
+
+    render(renderCallback);
+
+    colors.setMinDimension(10);
 
     colors.on('track', function(event) {
-      console.log(event.data);
       if (event.data.length === 0) {
         context.clearRect(0, 0, canvas.width, canvas.height);
-          // No colors were detected in this frame.
+        // No colors were detected in this frame.
       } else {
         context.clearRect(0, 0, canvas.width, canvas.height);
         event.data.forEach(function(rect) {
@@ -36,18 +106,17 @@
           }
 
           var img = document.getElementById("image");
-          context.drawImage(img,rect.x,rect.y,rect.width,rect.height);          // context.strokeStyle = rect.color;
+          context.drawImage(img, rect.x, rect.y, rect.width, rect.height);
+
         });
       }
     });
 
-    tracking.track('#myVideo', colors);
 
     navigator.getUserMedia = navigator.getUserMedia ||
       navigator.webkitGetUserMedia ||
       navigator.mozGetUserMedia ||
       navigator.msGetUserMedia;
-    var video = document.getElementById('myVideo');
 
     if (navigator.getUserMedia) {
       navigator.getUserMedia({
